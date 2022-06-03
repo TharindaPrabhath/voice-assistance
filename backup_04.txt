@@ -1,0 +1,302 @@
+import speech_recognition as sr
+import pyttsx3
+import webbrowser
+import datetime
+from datetime import date
+import pywhatkit
+import os
+import smtplib
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+import time
+import wikipedia
+
+
+listener = sr.Recognizer()
+listener_2 = sr.Recognizer()
+
+engine = pyttsx3.init()
+
+voices= engine.getProperty("voices")
+engine.setProperty("voice",voices[1].id)
+
+rate= engine.getProperty("rate")
+engine.setProperty("rate", 150)
+
+path="C:\\Program Files\\chromedriver.exe"
+
+next=False
+
+countSong=0
+
+def speak(audio):
+    engine.say(audio)
+    engine.runAndWait()
+    engine.stop()
+
+def confirm():
+    print(".................")
+    with sr.Microphone() as source:  
+        listener.pause_threshold = 1
+        listener.adjust_for_ambient_noise(source, duration = 1)
+        
+        voice= listener.listen(source)
+        
+        try:
+            con= listener.recognize_google(voice, language='en-IN')
+                   
+        except Exception:
+            return ""
+        return con
+
+def get_command():
+    with sr.Microphone() as source:  
+        print("\nlistening...")
+        listener.pause_threshold = 1
+        
+        voice= listener.listen(source, phrase_time_limit=5)
+        #listener.dynamic_energy_threshold = False
+        try:
+            print("recognizing...")
+            command= listener.recognize_google(voice, language='en-IN')
+            print(command+'\n')
+        
+        except Exception:
+            print("I didn't catch it\n")
+            speak("I didn't catch it")
+            return "None"
+        return command
+
+def date():
+    today= date.today()
+    date= today.strftime("%B %d, %Y")
+    print(date)
+    speak(date)
+
+def play_onyt():
+    song= command.replace("play","")
+    
+    speak("playing" +song)
+     
+    pywhatkit.playonyt(song)
+
+def music_offline(next,ftime):
+    music_source= "D:\\MC\\The Official UK Top 40 Singles Chart (06.11.2020) Mp3 (320kbps) [Hunter]\\The Official UK Top 40 Singles Chart (06.11.2020)"
+    songs= os.listdir(music_source)
+    
+    if ftime==True:
+        print(songs)
+    else:
+        pass
+    
+    global countSong
+    
+    if next==True:
+                       
+        countSong+=1
+        songFile= os.startfile(os.path.join(music_source, songs[countSong]))    
+    else:
+        
+        songFile= os.startfile(os.path.join(music_source, songs[countSong]))
+            
+    
+ 
+def send_email(reciever,msg):
+    x= reciever.replace(" ","")
+    y= x.lower()
+    print(f"Reciever's Email: {y}@gmail.com")
+    
+    message=f'Subject: {"Email from Tharinda" }\n\n {msg}'
+
+    print(f"Message: {msg}")
+    
+    server =smtplib.SMTP("smtp.gmail.com",587)
+    server.starttls()
+    server.login('tharindahp@gmail.com', 'seethepositiveside')
+    print("login ok")
+    server.sendmail('tharindahp@gmail.com', y+'@gmail.com' , message)
+    print("sent!!!")
+
+
+def download_song(songName):
+    driver_1= webdriver.Chrome(path)
+    driver_1.get("https://musicpleer24.com/") 
+    search= driver_1.find_element_by_id("searchField")
+    search.send_keys(songName)
+    search.send_keys(Keys.RETURN)
+
+    time.sleep(3)
+
+    speak("Now you can choose the exact one and click on it")
+
+def go_to_wikipedia():
+    driver_2= webdriver.Chrome(path)
+    driver_2.get("https://www.wikipedia.org/")
+    time.sleep(2)
+
+       
+    try:
+
+        with sr.Microphone() as source:
+            
+            speak("What do you want to search?")
+            print("listening...")
+
+            voice= listener.listen(source, phrase_time_limit=6)
+            print("recognizing...")
+            thing= listener_2.recognize_google(voice, language="en-IN")
+
+            driver_2.maximize_window()
+
+            search= driver_2.find_element_by_id("searchInput")
+            search.send_keys(thing)
+            search.send_keys(Keys.RETURN)
+
+            speak("Here is what I found")
+
+    except Exception:
+        pass
+
+def go_to_google(command):
+    editCommand= command.replace("search google", "")
+    try:
+
+        driver_3= webdriver.Chrome(path)
+        driver_3.get("https://www.google.com/")
+
+        search= driver_3.find_element_by_name("q")
+        search.send_keys(editCommand)
+        time.sleep(1)
+        search.send_keys(Keys.RETURN)
+
+        driver_3.maximize_window()
+        
+        time.sleep(1)
+        speak("Here is what i found on google")
+
+    except Exception:
+        print("N")
+
+def play_on_yt(command):
+    song= command.replace("play", "")
+    pywhatkit.playonyt(song)
+    time.sleep(2)
+    speak(f'Playing {song} on youtube')
+
+def get_from_wikipedia(command):
+    
+    try:
+        data= wikipedia.summary(command, sentences=2)
+        speak("According to wikipedia")
+        print(data)
+        speak(data)
+    except Exception:
+        print("sorry, I couldn't get there")
+        speak("sorry, I couldn't get there")
+
+
+
+
+
+def start():
+    
+    command= get_command().lower()
+
+    if "open bing" in command:
+        webbrowser.open("bing.com")
+        speak("Opening Bing")
+
+    elif "open youtube" in command:
+        webbrowser.open("youtube.com")
+        speak("Opening Youtube") 
+
+    elif "search google" in command:
+        go_to_google(command)
+            
+    elif "play" and "music" and "offline"in command:
+        music_offline(next=False, ftime=True)
+
+    elif "next song" in command:
+        music_offline(next=True, ftime=False)
+    
+    elif "the date" in command:
+        date()
+
+    elif "time" in command:
+        time= datetime.datetime.now().strftime('%I:%M %p')
+        print(time)
+        speak(f'Current time is{time}')
+    
+    elif "wikipedia"  in command:
+        go_to_wikipedia()
+
+    elif "play" in command:
+        play_on_yt(command)
+     
+    elif "who is" or "what is" or "where is" or "tell me about" in command:
+        get_from_wikipedia(command) 
+            
+    elif "download" and "song" in command:
+        songName= command.replace("download the song", "")
+        download_song(songName)
+  
+    elif "send an email" or "send a mail" or "send mail" in command:
+            
+        speak("Who do you want to send?")
+            
+        with sr.Microphone() as source:
+                    
+            print("listening...")
+            voice= listener.listen(source, phrase_time_limit=5)
+                                
+            try:
+                reciever= listener.recognize_google(voice, language='en-IN')
+                print(reciever)
+                        
+            except Exception:
+                speak("sorry, I couldn't hear Say again")
+                time.sleep(4)
+                        
+        speak("Tell me your message")
+                
+        with sr.Microphone() as source:
+                    
+            print("listening...")
+            voice= listener.listen(source,  phrase_time_limit=8)
+            print("recognizing...")               
+            try:
+                msg= listener.recognize_google(voice, language='en-IN')
+                        
+            except Exception:
+                speak("sorry, I couldn't hear.Say again.")
+
+        send_email(reciever,msg)
+        speak("Your email was sent")   
+
+    elif "what's your name" or "your name" in command:
+        speak("I'm alpha")
+        
+    elif "who are you" in command:
+        speak("I'm your personal assistance at the moment")
+
+    elif "are you single" in command:
+        speak("Yes, I'm single")
+
+    else:
+        go_to_google(command)
+
+    
+    
+        
+
+    
+
+
+
+
+
+
+
+
+
+
